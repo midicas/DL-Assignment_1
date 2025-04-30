@@ -6,6 +6,7 @@ class testModel(torch.nn.Module):
     Base model invoked for testing training functions
     """
     def __init__(self,n):
+        super(testModel, self).__init__()
         self.linear = torch.nn.Linear(n,1)
         self.activation = torch.nn.ReLU()
     def forward(self,x):
