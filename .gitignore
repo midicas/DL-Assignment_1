@@ -1,0 +1,7 @@
+# Python venv
+Include/
+Lib/
+Scripts/
+
+# Python venv config
+pyvenv.cfg
