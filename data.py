@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 
-class Dataset(Dataset):
+class LaserDataset(Dataset):
     def __init__(self, data, seq_length=3):
         self.data = torch.tensor(data, dtype=torch.uint8)
         self.seq_length = seq_length
@@ -20,7 +20,7 @@ class Dataset(Dataset):
         return x, y
 
 
-dataset = Dataset(raw, seq_length=5)
+dataset = LaserDataset(raw, seq_length=5)
 loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
 # Print the first batch
