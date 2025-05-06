@@ -19,18 +19,21 @@ class MLP(torch.nn.Module):
         self.linear = torch.nn.Linear(n,200)
         self.activation = torch.nn.ReLU()
         self.linear2 = torch.nn.Linear(200,100)
-        self.output = torch.nn.Linear(100,1)
+        self.linear3 = torch.nn.Linear(100,50)
+        self.output = torch.nn.Linear(50,1)
     
     def forward(self,x):
         out = self.linear(x)
         out = self.activation(out)
         out = self.linear2(out)
         out = self.activation(out)
+        out = self.linear3(out)
+        out = self.activation(out)
         out = self.output(out)
         return out
 
 class RNN(torch.nn.Module):
-    def __init__(self, hidden_size=64, num_layers=2):
+    def __init__(self, hidden_size = 64, num_layers=4):
         super(RNN, self).__init__()
         self.rnn = nn.RNN(1, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, 1)
@@ -42,7 +45,7 @@ class RNN(torch.nn.Module):
         return self.fc(last_hidden)
 
 class Transformer(nn.Module):
-    def __init__(self, n,encode_pos, model_dimensionality=64, n_attenionheads=4, num_of_transformer_blocks=2):
+    def __init__(self, n,encode_pos, model_dimensionality=64, num_of_transformer_blocks=2):
         super(Transformer, self).__init__()
         #Learns embeddings of simple scalar (Might be overkill)
         self.embedding = nn.Linear(1, model_dimensionality)
@@ -51,7 +54,7 @@ class Transformer(nn.Module):
         self.pos_encoder = PositionalEncoding(model_dimensionality, max_len=n)
         
         #Create transformer layer then stack layer
-        encoder_layer = nn.TransformerEncoderLayer(d_model=model_dimensionality, nhead=n_attenionheads)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=model_dimensionality, nhead=1)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_of_transformer_blocks)
         
         #output layer can be replaced by a different model
