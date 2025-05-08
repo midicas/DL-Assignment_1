@@ -13,6 +13,7 @@ from itertools import product
 def train_model(epochs: int = 1, train_loader: DataLoader = None, validation_loader: DataLoader = None, model: torch.nn.Module = None, loss_function = None, optimizer: torch.optim.Optimizer = None) -> None:
     avg_train_losses = []
     avg_val_losses = []
+
     for i in range(epochs):
         model.train()
         train_losses = []
@@ -34,7 +35,7 @@ def train_model(epochs: int = 1, train_loader: DataLoader = None, validation_loa
         val_losses = []
 
         with torch.no_grad():
-            for x_batch, y_batch in train_loader:
+            for x_batch, y_batch in validation_loader:
                 output = model(x_batch.float())
 
                 loss = loss_function(output, y_batch.float())
@@ -42,8 +43,8 @@ def train_model(epochs: int = 1, train_loader: DataLoader = None, validation_loa
             
         avg_val_loss = np.mean(val_losses)
         avg_val_losses.append(avg_val_loss)
-        print(f"Epoch {i} | Training Loss: {avg_train_loss:.3f} | Validation Loss: {avg_val_loss:.3f}")
-    
+        print(f"Epoch {i} | Training Loss: {avg_train_loss:.10f} | Validation Loss: {avg_val_loss:.10f}")
+
     return avg_train_losses,avg_val_losses
     
 
@@ -93,6 +94,7 @@ def grid_search(model : torch.nn.Module,parameter_space : dict):
     best_score = float('inf')
     best_parameters = None
 
+    results = []
     for seq_length,optimizer_fn,batch_size,epochs,learning_rate,*model_params in product(*parameter_space.values()):
         dataset = LaserDataset(raw, seq_length=seq_length)
 
@@ -122,6 +124,7 @@ def grid_search(model : torch.nn.Module,parameter_space : dict):
         optimizer = optimizer_fn(model_.parameters(),lr = learning_rate)
         loss_function = torch.nn.L1Loss()
         _,val_losses = train_model(epochs,train_loader,validation_loader,model_,loss_function,optimizer)
+        results.append(val_losses[-1])
         if val_losses[-1] < best_score:
             best_score = val_losses[-1]
             best_parameters = [seq_length,optimizer_fn,batch_size,epochs,learning_rate,*model_params]
@@ -130,6 +133,8 @@ def grid_search(model : torch.nn.Module,parameter_space : dict):
         file.write(str(parameter) + "\n")
     file.close()
     print(f"Best score: {best_score}, Best parameters: {best_parameters}")
+    
+    return results
 
 def create_graph(train_losses: list, val_losses : list, model_name : str) -> None:
     plt.plot(train_losses,label = "Training")
@@ -161,39 +166,15 @@ def get_model(model_name: str) -> torch.nn.Module:
     return MLP
 
 if __name__ == '__main__':
-    parameter_space_MLP = {"seq_length": list(np.arange(1,51,5)),
-                       "Optimizer": [torch.optim.Adam,torch.optim.AdamW],
-                       "Batch_size": [1,8,16,32],
-                       "Epochs": [1,25,50,100],
-                       "Learning_rate":[0.1,0.01,0.001]}
-    grid_search(MLP,parameter_space_MLP)
     
-    parameter_space_RNN = {"seq_length": list(np.arange(1,51,5)),
-                       "Optimizer": [torch.optim.Adam,torch.optim.AdamW],
-                       "Batch_size": [1,8,16,32],
-                       "Epochs": [1,25,50,100],
-                       "Learning_rate":[0.1,0.01,0.001],
-                       "hidden_size": [1,16,32,64],
-                       "num_of_layers": [1,2,4,8]}
-    grid_search(RNN,parameter_space_RNN)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', help='Model', type=str, default='MLP')
+    parser.add_argument('-l', help='Learning rate', type=float, default=0.00003)
+    parser.add_argument('-w', help='Window size', type=int, default=15)
+    parser.add_argument('-e', help='Number of epochs', type=int, default=100)
+    parser.add_argument('-b', help='Batch size', type=int, default=32)
+    args = parser.parse_args()
 
-    parameter_space_TF = {"seq_length": list(np.arange(1,51,5)),
-                       "Optimizer": [torch.optim.Adam,torch.optim.AdamW],
-                       "Batch_size": [1,8,16,32],
-                       "Epochs": [1,25,50,100],
-                       "Learning_rate":[0.1,0.01,0.001],
-                       "pos": [True,False],
-                       "dimensionality": [1,16,32,64],
-                       "transformer_blocks": [1,2,4,8]}
-    grid_search(Transformer,parameter_space_TF)
-    #parser = argparse.ArgumentParser()
-    #parser.add_argument('-m', help='Model', type=str, default='MLP')
-    #parser.add_argument('-l', help='Learning rate', type=float, default=0.00003)
-    #parser.add_argument('-w', help='Window size', type=int, default=15)
-    #parser.add_argument('-e', help='Number of epochs', type=int, default=100)
-    #parser.add_argument('-b', help='Batch size', type=int, default=32)
-    #args = parser.parse_args()
+    model = get_model(args.m)
 
-    #model = get_model(args.m)
-
-    #train(model, args.w, args.l, args.b, args.e)
+    train(model, args.w, args.l, args.b, args.e)

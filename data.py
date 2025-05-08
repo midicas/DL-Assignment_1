@@ -6,7 +6,11 @@ from torch.utils.data import Dataset, DataLoader
 
 class LaserDataset(Dataset):
     def __init__(self, data, seq_length=3):
-        self.data = torch.tensor(data, dtype=torch.uint8)
+        self.raw = torch.tensor(data, dtype=torch.uint8)
+        #self.data_min = torch.min(self.raw)
+        #self.data_max = torch.max(self.raw)
+        #self.data = (self.raw - self.data_min) / (self.data_max - self.data_min)
+        self.data = self.raw
         self.seq_length = seq_length
 
     def __len__(self):

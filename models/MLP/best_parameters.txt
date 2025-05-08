@@ -1,0 +1,5 @@
+16
+<class 'torch.optim.adam.Adam'>
+1
+100
+0.001
