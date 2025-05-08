@@ -1,7 +1,15 @@
 import scipy.io
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+import torch
+from torch.utils.data import DataLoader
+from sklearn.preprocessing import StandardScaler
+import os
+import argparse
+from typing import Tuple, List, Optional
 
+# Import your model classes
+from models import MLP, RNN, Transformer, testModel
 
 # RAW LASER MEASUREMENT TIME SERIES
 
@@ -23,9 +31,9 @@ print("\nFirst 10 values of Xtrain:\n", time_series_data[:10])
 time_series_data_1d = time_series_data.flatten()
 
 plt.plot(time_series_data_1d)
-plt.title('Raw Laser Measurement Time Series')
-plt.xlabel('Time Step (t)')
-plt.ylabel('Laser Measurement Valuelue')
+plt.title('Raw laser measurement time series')
+plt.xlabel('Time step')
+plt.ylabel('Laser measurement value')
 plt.show()
 
 
@@ -43,20 +51,6 @@ This script:
 
 Author: Team ID
 """
-
-import scipy.io
-import numpy as np
-import matplotlib.pyplot as plt
-import torch
-from torch.utils.data import DataLoader
-from sklearn.preprocessing import StandardScaler
-import os
-import argparse
-from typing import Tuple, List, Optional
-
-# Import your model classes
-from models import MLP, RNN, Transformer, testModel
-
 
 def load_data(file_path: str) -> np.ndarray:
     """
@@ -92,7 +86,7 @@ def visualize_data(data: np.ndarray, title: str = "Time Series Data",
     plt.figure(figsize=(12, 6))
     plt.plot(data, linewidth=1)
     plt.title(title)
-    plt.xlabel("Time Step")
+    plt.xlabel("Time step")
     plt.ylabel("Value")
     plt.grid(True, alpha=0.3)
     
@@ -259,7 +253,7 @@ def visualize_predictions(actual_data: np.ndarray,
                  bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8))
     
     plt.title(title)
-    plt.xlabel("Time Steps")
+    plt.xlabel("Time steps")
     plt.ylabel("Value")
     plt.legend()
     plt.grid(True, alpha=0.3)
@@ -291,7 +285,7 @@ def main():
     
     # Load and visualize data
     data = load_data(args.data_file)
-    visualize_data(data, title=f"Time Series Data from {args.data_file}",
+    visualize_data(data, title=f"Time series data predictions {args.data_file}",
                    save_path=f"results/data_visualization.png")
     
     # Prepare data scaler
@@ -315,7 +309,7 @@ def main():
     # Visualize predictions
     visualize_predictions(
         data, predictions, args.start_idx, args.window_size,
-        title=f"{args.model} - {args.predict_steps} Step Recursive Predictions",
+        title=f"{args.model} - {args.predict_steps} Step eecursive predictions",
         save_path=f"results/{args.model}_predictions.png")
     
     # Save predictions to file
