@@ -6,5 +6,10 @@ Include/
 Lib/
 Scripts/
 share/
+lib/
+lib64/
+include/
+bin/
+
 # Python venv config
 pyvenv.cfg

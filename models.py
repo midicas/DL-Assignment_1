@@ -12,7 +12,7 @@ class testModel(torch.nn.Module):
         self.activation = torch.nn.ReLU()
     def forward(self,x):
         return self.activation(self.linear(x))
-    
+
 class MLP(torch.nn.Module):
     def __init__(self,n):
         super(MLP,self).__init__()
@@ -21,7 +21,7 @@ class MLP(torch.nn.Module):
         self.linear2 = torch.nn.Linear(200,100)
         self.linear3 = torch.nn.Linear(100,50)
         self.output = torch.nn.Linear(50,1)
-    
+
     def forward(self,x):
         out = self.linear(x)
         out = self.activation(out)
@@ -37,7 +37,7 @@ class RNN(torch.nn.Module):
         super(RNN, self).__init__()
         self.rnn = nn.RNN(1, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, 1)
-    
+
     def forward(self, x):
         x = x.unsqueeze(-1)
         out, _ = self.rnn(x)
@@ -52,26 +52,26 @@ class Transformer(nn.Module):
         #Creates positional encodings
         self.encode_pos = encode_pos
         self.pos_encoder = PositionalEncoding(model_dimensionality, max_len=n)
-        
+
         #Create transformer layer then stack layer
         encoder_layer = nn.TransformerEncoderLayer(d_model=model_dimensionality, nhead=1)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_of_transformer_blocks)
-        
+
         #output layer can be replaced by a different model
         self.output = nn.Linear(model_dimensionality, 1)
 
     def forward(self, x):
         x = x.unsqueeze(-1)
         x = self.embedding(x)
-        
+
         if self.encode_pos:
             x = self.pos_encoder(x)
-        
+
         x = x.permute(1, 0, 2)
         out = self.transformer(x)
         out = out[-1]
         return self.output(out)
-    
+
 class PositionalEncoding(nn.Module):
     """
     Layer that applies sinusoidal position encoding.

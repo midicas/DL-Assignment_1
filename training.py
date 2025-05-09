@@ -1,6 +1,7 @@
 from scipy.io import loadmat
 import numpy as np
 import torch
+from torch.optim import Adam
 from torch.utils.data import DataLoader, random_split
 import argparse
 import os
@@ -11,6 +12,9 @@ from itertools import product
 
 
 def train_model(epochs: int = 1, train_loader: DataLoader = None, validation_loader: DataLoader = None, model: torch.nn.Module = None, loss_function = None, optimizer: torch.optim.Optimizer = None) -> None:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
     avg_train_losses = []
     avg_val_losses = []
 
@@ -19,9 +23,12 @@ def train_model(epochs: int = 1, train_loader: DataLoader = None, validation_loa
         train_losses = []
 
         for x_batch, y_batch in train_loader:
-            output = model(x_batch.float())
+            x_batch = x_batch.float().to(device)
+            y_batch = y_batch.float().to(device)
 
-            loss = loss_function(output, y_batch.float())
+            output = model(x_batch)
+
+            loss = loss_function(output, y_batch)
             train_losses.append(loss.item())
 
             optimizer.zero_grad()
@@ -36,19 +43,22 @@ def train_model(epochs: int = 1, train_loader: DataLoader = None, validation_loa
 
         with torch.no_grad():
             for x_batch, y_batch in validation_loader:
-                output = model(x_batch.float())
+                x_batch = x_batch.float().to(device)
+                y_batch = y_batch.float().to(device)
 
-                loss = loss_function(output, y_batch.float())
+                output = model(x_batch)
+
+                loss = loss_function(output, y_batch)
                 val_losses.append(loss.item())
-            
+
         avg_val_loss = np.mean(val_losses)
         avg_val_losses.append(avg_val_loss)
         print(f"Epoch {i} | Training Loss: {avg_train_loss:.10f} | Validation Loss: {avg_val_loss:.10f}")
 
     return avg_train_losses,avg_val_losses
-    
 
-def train(model: torch.nn.Module=MLP, window_size: int=15, learning_rate: float=0.00003, batch_size: int=32, epochs: int=100):
+
+def train(model: torch.nn.Module=MLP, window_size: int=15, learning_rate: float=0.00003, batch_size: int=32, epochs: int=100, optimizer=Adam):
     """Loads the training data, model, loss function, and optimizer, and trains the model. After training, the model is saved to the 'models' folder.
 
     Keyword arguments:
@@ -59,7 +69,7 @@ def train(model: torch.nn.Module=MLP, window_size: int=15, learning_rate: float=
         epochs: number of training iterations
     """
 
-    print("Using model " + model.__name__)
+    print(f"Using model {model.__name__}")
     print("\t learning rate: " + str(learning_rate))
     print("\t number of epochs: " + str(epochs))
     print("\t batch size: " + str(batch_size))
@@ -77,20 +87,19 @@ def train(model: torch.nn.Module=MLP, window_size: int=15, learning_rate: float=
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False)
     validation_loader = DataLoader(validation_data, batch_size=batch_size, shuffle=False)
 
-    model_ = model() if model == RNN else model(n=window_size, encode_pos=True) if model == Transformer else model(n=window_size)
     loss_function = torch.nn.L1Loss()
-    optimizer = torch.optim.NAdam(model_.parameters(), lr=learning_rate)
+    optimizer = optimizer(model.parameters(), lr=learning_rate)
 
-    train_losses,val_losses = train_model(epochs, train_loader, validation_loader, model_, loss_function, optimizer)
-    
+    train_losses,val_losses = train_model(epochs, train_loader, validation_loader, model, loss_function, optimizer)
+
     os.makedirs(f"models/{model.__name__}", exist_ok=True)
     create_graph(train_losses,val_losses,model.__name__)
-    
+
     save_model(model)
 
 def grid_search(model : torch.nn.Module,parameter_space : dict):
     raw = loadmat("Xtrain.mat")["Xtrain"].squeeze()
-    
+
     best_score = float('inf')
     best_parameters = None
 
@@ -120,7 +129,7 @@ def grid_search(model : torch.nn.Module,parameter_space : dict):
             encode_pos, model_dimensionality, num_of_transformer_blocks = model_params
             model_ = model(seq_length,encode_pos,model_dimensionality,num_of_transformer_blocks)
             print(f"Training {model.__name__} model: Window size:{seq_length}, Optimizer:{optimizer_fn.__name__}, batch size: {batch_size}, epochs: {epochs}, learning rate:{learning_rate},position encoding: {encode_pos},num layers:{num_of_transformer_blocks}, model dimensionality: {model_dimensionality}")
-        
+
         optimizer = optimizer_fn(model_.parameters(),lr = learning_rate)
         loss_function = torch.nn.L1Loss()
         _,val_losses = train_model(epochs,train_loader,validation_loader,model_,loss_function,optimizer)
@@ -133,13 +142,13 @@ def grid_search(model : torch.nn.Module,parameter_space : dict):
         file.write(str(parameter) + "\n")
     file.close()
     print(f"Best score: {best_score}, Best parameters: {best_parameters}")
-    
+
     return results
 
 def create_graph(train_losses: list, val_losses : list, model_name : str) -> None:
     plt.plot(train_losses,label = "Training")
     plt.plot(val_losses,label = "Validation")
-    
+
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.legend()
@@ -149,7 +158,7 @@ def create_graph(train_losses: list, val_losses : list, model_name : str) -> Non
 
 
 def save_model(model: torch.nn.Module) -> None:
-    
+
     torch.save(model, f"models/{model.__name__}/model_{model.__name__}.pt")
 
 
@@ -162,11 +171,11 @@ def get_model(model_name: str) -> torch.nn.Module:
     for m in models:
         if model_name == m.__name__:
             return m
-    
+
     return MLP
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', help='Model', type=str, default='MLP')
     parser.add_argument('-l', help='Learning rate', type=float, default=0.00003)
